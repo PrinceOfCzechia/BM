@@ -2,6 +2,7 @@ rm(list=ls())
 
 library(MASS)
 library(pracma)
+library(coda)
 
 N = 50
 y = 59.6
@@ -28,7 +29,7 @@ c( qchisq(0.025,N-1)/(49*11.6^2), qchisq(0.975,N-1)/(49*11.6^2) )
 density_mu = function(N, g, y, s, h, mu) {
   numerator = gamma(N/2 + g)
   denominator = (0.5 * N * s^2 + N * (y - mu)^2 + h)^(N/2 + g)
-  return = ( numerator / denominator )
+  return = ( 1e63 * numerator / denominator )
 }
 
 mu_values = seq(50, 70, length.out = 100)
@@ -36,7 +37,7 @@ mu_values = seq(50, 70, length.out = 100)
 g = 0.001
 h = 0.001
 expression_values = sapply(mu_values, function(mu) density_mu(N, g, y, s, h, mu))
-expression_values = expression_values * 1e65
+expression_values = expression_values * 1e63
 
 df = data.frame(mu = mu_values, expression = expression_values)
 ggplot(df, aes(x = mu, y = expression)) +
@@ -46,7 +47,7 @@ ggplot(df, aes(x = mu, y = expression)) +
 g = 1
 h = 0.005
 expression_values = sapply(mu_values, function(mu) density_mu(N, g, y, s, h, mu))
-expression_values = expression_values * 1e65
+expression_values = expression_values
 
 df = data.frame(mu = mu_values, expression = expression_values)
 ggplot(df, aes(x = mu, y = expression)) +
@@ -56,7 +57,7 @@ ggplot(df, aes(x = mu, y = expression)) +
 g = 0
 h = 0
 expression_values = sapply(mu_values, function(mu) density_mu(N, g, y, s, h, mu))
-expression_values = expression_values * 1e65
+expression_values = expression_values
 
 df = data.frame(mu = mu_values, expression = expression_values)
 ggplot(df, aes(x = mu, y = expression)) +
@@ -142,3 +143,51 @@ CDF_sigma = function(sigma)
 qL_sigma = uniroot(function(sigma) {CDF_sigma(sigma) - 0.025}, interval = c(0.05, 0.09))$root
 qU_sigma = uniroot(function(sigma) {CDF_sigma(sigma) - 0.975}, interval = c(0.09, 0.12))$root
 ET_sigma = c(qL_sigma,qU_sigma)
+
+
+###
+# 7)
+###
+
+# HPD for mu
+C = 0.95
+mu_values = seq(50, 70, by = 0.001)
+density_values = density_mu(N, g, y, s, h, mu_values)
+sorted = sort(density_values, decreasing = TRUE)
+cum_sum = cumsum(sorted)
+index = which(cum_sum >= C * sum(sorted))[1]
+hpd_idx = c(index, index + 1)
+sorted[hpd_idx]
+HPD = c(mu_values[which(density_values == sorted[hpd_idx][1])],
+        mu_values[which(density_values == sorted[hpd_idx][2])])
+HPD = c(min(HPD),max(HPD))
+cat(HPD)
+
+# HPD for tau
+C = 0.95
+tau_values = seq(0.001, 0.015, by = 5e-6)
+density_values = density_tau(N, g, s, h, tau_values) * 1e60
+sorted = sort(density_values, decreasing = TRUE)
+cum_sum = cumsum(sorted)
+index = which(cum_sum >= C * sum(sorted))[1]
+hpd_idx = c(index, index + 1)
+sorted[hpd_idx]
+HPD = c(tau_values[which(density_values == sorted[hpd_idx][1])],
+        tau_values[which(density_values == sorted[hpd_idx][2])])
+HPD = c(min(HPD),max(HPD))
+cat(HPD)
+
+
+# HPD for sigma
+C = 0.95
+sigma_values = seq(0.05, 0.15, by = 0.0001)
+density_values = density_sigma(N, g, s, h, sigma_values) * 0.5e61
+sorted = sort(density_values, decreasing = TRUE)
+cum_sum = cumsum(sorted)
+index = which(cum_sum >= C * sum(sorted))[1]
+hpd_idx = c(index, index + 1)
+sorted[hpd_idx]
+HPD = c(sigma_values[which(density_values == sorted[hpd_idx][1])],
+        sigma_values[which(density_values == sorted[hpd_idx][2])])
+HPD = c(min(HPD),max(HPD))
+cat(HPD)
