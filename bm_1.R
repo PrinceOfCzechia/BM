@@ -68,7 +68,7 @@ i_full = integrate(density_mu, lower = -100, upper = 100,
                            N = 50, g = 1, y = 59.6, s = 11.1, h = 0.005)
 
 # Compute integral from 55 to infinity
-i_55 = integrate(denisty_mu, lower = 55, upper = 100,
+i_55 = integrate(density_mu, lower = 55, upper = 100,
                              N = 50, g = 1, y = 59.6, s = 11.1, h = 0.005)
 
 # Print results
@@ -85,8 +85,8 @@ density_tau = function(N, g, s, h, tau)
   return = ( tau^(N/2 + g - 1) * exp(-0.5 * tau * (N * s^2 + h)) * sqrt(2 * pi / (N * tau)) )
 }
 
-g = 0.001
-h = 0.001
+g = 0
+h = 0
 tau_values = seq(0.001, 0.020, length.out = 100)
 density_values = density_tau(N, g, s, h, tau_values) * 1e60
 
@@ -104,3 +104,41 @@ density_values = density_sigma(N, g, s, h, sigma_values) * 0.5e61
 
 plot(sigma_values, density_values, type = "l", xlab = "sigma", ylab = "density_sigma",
      main = "density of sigma")
+
+
+###
+# 6)
+###
+
+# ET for mu
+CDF_mu = function(mu)
+{ 
+  CDF = integrate(function(mu) 1e63 * density_mu(N, g, y, s, h, mu), lower= - 100, upper = mu)$value
+  norm = integrate(function(mu) 1e63 *density_mu(N, g, y, s, h, mu), lower= - 100, upper = 100)$value
+  return = CDF/norm
+}
+qL_mu = uniroot(function(mu) {CDF_mu(mu) - 0.025}, interval = c(55, 60))$root
+qU_mu = uniroot(function(mu) {CDF_mu(mu) - 0.975}, interval = c(60, 65))$root
+ET_mu = c(qL_mu,qU_mu)
+
+# ET for tau
+CDF_tau = function(tau)
+{ 
+  CDF = integrate(function(tau) 1e60 * density_tau(N, g, s, h, tau), lower= 0.001, upper = tau)$value
+  norm = integrate(function(tau) 1e60 * density_tau(N, g, s, h, tau), lower= 0.001, upper = 0.012)$value
+  return = CDF/norm
+}
+qL_tau = uniroot(function(tau) {CDF_tau(tau) - 0.025}, interval = c(0.001, 0.007))$root
+qU_tau = uniroot(function(tau) {CDF_tau(tau) - 0.975}, interval = c(0.009, 0.015))$root
+ET_tau = c(qL_tau,qU_tau)
+
+# ET for sigma
+CDF_sigma = function(sigma)
+{ 
+  CDF = integrate(function(sigma) 0.5e61 * density_sigma(N, g, s, h, sigma), lower= 0.05, upper = sigma)$value
+  norm = integrate(function(sigma) 0.5e61 * density_sigma(N, g, s, h, sigma), lower= 0.05, upper = 0.15)$value
+  return = CDF/norm
+}
+qL_sigma = uniroot(function(sigma) {CDF_sigma(sigma) - 0.025}, interval = c(0.05, 0.09))$root
+qU_sigma = uniroot(function(sigma) {CDF_sigma(sigma) - 0.975}, interval = c(0.09, 0.12))$root
+ET_sigma = c(qL_sigma,qU_sigma)
