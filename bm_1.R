@@ -65,7 +65,7 @@ ggplot(df, aes(x = mu, y = expression)) +
   labs(x = "Mean (mu)", y = "Expression Value", title = "Expression vs. Mean")
 
 # Compute integral from -infinity to infinity
-i_full = integrate(density_mu, lower = -100, upper = 100,
+i_full = integrate(density_mu, lower = 0, upper = 100,
                            N = 50, g = 1, y = 59.6, s = 11.1, h = 0.005)
 
 # Compute integral from 55 to infinity
@@ -114,8 +114,8 @@ plot(sigma_values, density_values, type = "l", xlab = "sigma", ylab = "density_s
 # ET for mu
 CDF_mu = function(mu)
 { 
-  CDF = integrate(function(mu) 1e63 * density_mu(N, g, y, s, h, mu), lower= - 100, upper = mu)$value
-  norm = integrate(function(mu) 1e63 *density_mu(N, g, y, s, h, mu), lower= - 100, upper = 100)$value
+  CDF = integrate(function(mu) 1e63 * density_mu(N, g, y, s, h, mu), lower= 0, upper = mu)$value
+  norm = integrate(function(mu) 1e63 *density_mu(N, g, y, s, h, mu), lower= 0, upper = 100)$value
   return = CDF/norm
 }
 qL_mu = uniroot(function(mu) {CDF_mu(mu) - 0.025}, interval = c(55, 60))$root
@@ -191,3 +191,52 @@ HPD = c(sigma_values[which(density_values == sorted[hpd_idx][1])],
         sigma_values[which(density_values == sorted[hpd_idx][2])])
 HPD = c(min(HPD),max(HPD))
 cat(HPD)
+
+
+###
+# 8)
+###
+
+# feed the CDF only values below ( mu=100, tau = 0.020 )
+
+# CDF_mu defined in 6)
+
+CDF_tau = function(tau)
+{ 
+  CDF = integrate( function(tau) density_tau(N, g, s, h, tau), lower= 0.001, upper = tau )$value
+  norm = integrate( function(tau) density_tau(N, g, s, h, tau), lower= 0.001, upper = 0.020 )$value
+  return = ( CDF/norm )
+}
+
+# (CDF_tau(0.008)) probably works ok
+
+q_mu = function(m)
+{
+  ifelse( m>0.5,
+          uniroot(function(mu) {CDF_mu(mu) - m}, interval = c(59.6, 100))$root,
+          uniroot(function(mu) {CDF_mu(mu) - m}, interval = c(-100, 59.6))$root
+        )
+}
+
+q_tau = function(t)
+{
+  uniroot(function(tau) {CDF_tau(tau) - t}, interval = c(0.001, 0.020))$root
+}
+
+gen_posterior = function(N_samples)
+{
+  N_samples = 1000
+  U1 = runif(N_samples)
+  U2 = runif(N_samples)
+  
+  mu_sample = numeric(N_samples)
+  tau_sample = numeric(N_samples)
+  
+  for (i in 1:N_samples)
+  {
+    mu_sample[i] = q_mu(U1[i])
+    tau_sample[i] = q_tau(U2[i])
+  }
+  result_list = list(mu_sample = mu_sample, tau_sample = tau_sample)
+  return(result_list)
+}
