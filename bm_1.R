@@ -240,3 +240,11 @@ gen_posterior = function(N_samples)
   result_list = list(mu_sample = mu_sample, tau_sample = tau_sample)
   return(result_list)
 }
+
+MC_sample = gen_posterior( 100000 )
+hist( MC_sample$mu_sample )
+hist( MC_sample$tau_sample )
+
+# sample CI from the Monte Carlo
+CI_mu = c( quantile( MC_sample$mu_sample, 0.025 ), quantile( MC_sample$mu_sample, 0.975 ) )
+CI_tau = c( quantile( MC_sample$tau_sample, 0.025 ), quantile( MC_sample$tau_sample, 0.975 ) )
